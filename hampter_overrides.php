@@ -31,9 +31,22 @@ class Hampter_Overrides extends Module
 
     public function install()
     {
-        return parent::install()
-            && $this->registerHook('displayHeader')
-            && $this->installModuleOverrides();
+        try {
+            return parent::install()
+                && $this->registerHook('displayHeader')
+                && $this->installModuleOverrides();
+        } catch (\Exception $e) {
+            PrestaShopLogger::addLog(
+                '[hampter_overrides] install failed: ' . $e->getMessage(),
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
+                null,
+                'Module',
+                null,
+                true
+            );
+
+            return false;
+        }
     }
 
     public function uninstall()
