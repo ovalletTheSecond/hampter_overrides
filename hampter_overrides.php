@@ -311,6 +311,12 @@ class Hampter_Overrides extends Module
         $scripts .= '      radios.forEach(function (radio) { radio.addEventListener(\'change\', hampterUpdatePaypalButtonVisibility); });' . PHP_EOL;
         $scripts .= '      hampterUpdatePaypalButtonVisibility();' . PHP_EOL;
         $scripts .= '      waitPaypalIsLoaded();' . PHP_EOL;
+        $scripts .= '      document.querySelectorAll(\'input[name="payment-option"][data-module-name="paypal"]\').forEach(function (radio) {' . PHP_EOL;
+        $scripts .= '        radio.addEventListener(\'change\', function () { if (radio.checked) { renderHampterFallbackButton(); } });' . PHP_EOL;
+        $scripts .= '      });' . PHP_EOL;
+        $scripts .= '      if (document.querySelector(\'input[name="payment-option"][data-module-name="paypal"]:checked\')) {' . PHP_EOL;
+        $scripts .= '        renderHampterFallbackButton();' . PHP_EOL;
+        $scripts .= '      }' . PHP_EOL;
         $scripts .= '    }' . PHP_EOL;
         $scripts .= '    if (document.readyState === "loading") {' . PHP_EOL;
         $scripts .= '      document.addEventListener("DOMContentLoaded", hampterInitPaypal);' . PHP_EOL;
