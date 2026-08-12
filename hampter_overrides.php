@@ -87,8 +87,57 @@ class Hampter_Overrides extends Module
 
     public function uninstall()
     {
-        return $this->uninstallModuleOverrides()
-            && parent::uninstall();
+        try {
+            $overrideOk = $this->uninstallModuleOverrides();
+            $coreOk = parent::uninstall();
+
+            if (!$overrideOk || !$coreOk) {
+                $errors = [];
+                if (!empty($this->_errors) && is_array($this->_errors)) {
+                    $errors = $this->_errors;
+                } elseif (method_exists($this, 'getErrors')) {
+                    $errors = $this->getErrors();
+                }
+
+                $message = '[hampter_overrides] uninstall failed';
+                if (!empty($errors)) {
+                    $message .= ': ' . implode(' | ', $errors);
+                }
+
+                PrestaShopLogger::addLog(
+                    $message,
+                    PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
+                    null,
+                    'Module',
+                    null,
+                    true
+                );
+
+                return false;
+            }
+
+            PrestaShopLogger::addLog(
+                '[hampter_overrides] uninstall success',
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_INFO,
+                null,
+                'Module',
+                null,
+                true
+            );
+
+            return true;
+        } catch (\Exception $e) {
+            PrestaShopLogger::addLog(
+                '[hampter_overrides] uninstall failed: ' . $e->getMessage(),
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
+                null,
+                'Module',
+                null,
+                true
+            );
+
+            return false;
+        }
     }
 
     /**
@@ -297,12 +346,40 @@ class Hampter_Overrides extends Module
 
             if ($file->isDir()) {
                 if (is_dir($targetPath) && !rmdir($targetPath)) {
+                    $error = error_get_last();
+                    $message = sprintf('[hampter_overrides] unable to remove directory %s', $targetPath);
+                    if (!empty($error['message'])) {
+                        $message .= ' (' . $error['message'] . ')';
+                    }
+                    $this->_errors[] = $message;
+                    PrestaShopLogger::addLog(
+                        $message,
+                        PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
+                        null,
+                        'Module',
+                        null,
+                        true
+                    );
                     $success = false;
                 }
                 continue;
             }
 
             if (is_file($targetPath) && !unlink($targetPath)) {
+                $error = error_get_last();
+                $message = sprintf('[hampter_overrides] unable to remove file %s', $targetPath);
+                if (!empty($error['message'])) {
+                    $message .= ' (' . $error['message'] . ')';
+                }
+                $this->_errors[] = $message;
+                PrestaShopLogger::addLog(
+                    $message,
+                    PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
+                    null,
+                    'Module',
+                    null,
+                    true
+                );
                 $success = false;
             }
         }
