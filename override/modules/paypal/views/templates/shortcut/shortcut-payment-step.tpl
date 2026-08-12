@@ -47,7 +47,9 @@
       <input type="hidden" id="source_page" name="source_page" value="cart">
       <input type="hidden" name="isAddAddress" value="1">
     </form>
-    <div paypal-button-container></div>
+    <div paypal-button-container>
+      <div id="hampter-paypal-button"></div>
+    </div>
 
     <div style="display: none" class="alert alert-danger" paypal-ec-wrong-button-message>
       <div>{l s='Please click on the \'Pay with PayPal\' button' mod='paypal'}</div>

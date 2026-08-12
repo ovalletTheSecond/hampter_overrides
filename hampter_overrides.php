@@ -241,11 +241,10 @@ class Hampter_Overrides extends Module
         $scripts .= '      if (typeof totPaypalSdkButtons === "undefined" || paypalShortcutState.buttonInitialized) {' . PHP_EOL;
         $scripts .= '        return;' . PHP_EOL;
         $scripts .= '      }' . PHP_EOL;
-        $scripts .= '      var buttonContainer = document.querySelector("[paypal-button-container]");' . PHP_EOL;
+        $scripts .= '      var buttonContainer = document.getElementById("hampter-paypal-button");' . PHP_EOL;
         $scripts .= '      if (!buttonContainer) {' . PHP_EOL;
         $scripts .= '        return;' . PHP_EOL;
         $scripts .= '      }' . PHP_EOL;
-        $scripts .= '      if (typeof Shortcut !== "undefined") { Shortcut.init(); }' . PHP_EOL;
         $scripts .= '      var selectedPaypal = document.querySelector(\'input[name="payment-option"][data-module-name="paypal"]:checked\');' . PHP_EOL;
         $scripts .= '      if (!selectedPaypal) {' . PHP_EOL;
         $scripts .= '        return;' . PHP_EOL;
@@ -262,7 +261,7 @@ class Hampter_Overrides extends Module
         $scripts .= '          onApprove: function (data) {' . PHP_EOL;
         $scripts .= '            window.location.href = scOrderUrl + "&token=" + encodeURIComponent(data.orderID) + "&PayerID=" + encodeURIComponent(data.payerID);' . PHP_EOL;
         $scripts .= '          }' . PHP_EOL;
-        $scripts .= '        }).render(buttonContainer);' . PHP_EOL;
+        $scripts .= '        }).render("#hampter-paypal-button");' . PHP_EOL;
         $scripts .= '      }' . PHP_EOL;
         $scripts .= '      paypalShortcutState.buttonInitialized = true;' . PHP_EOL;
         $scripts .= '    }' . PHP_EOL;
