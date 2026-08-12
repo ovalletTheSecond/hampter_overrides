@@ -45,6 +45,14 @@ class Hampter_Overrides extends Module
                 true
             );
 
+            PrestaShopLogger::addLog(
+                '[hampter_overrides] install OK',
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_INFO,
+                null,
+                'Module',
+                null,
+                true
+            );
             return false;
         }
     }
