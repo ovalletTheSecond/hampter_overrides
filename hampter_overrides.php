@@ -63,7 +63,7 @@ class Hampter_Overrides extends Module
 
             PrestaShopLogger::addLog(
                 '[hampter_overrides] install success',
-                PrestaShopLogger::LOG_SEVERITY_LEVEL_INFO,
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_INFORMATIVE,
                 null,
                 'Module',
                 null,
@@ -118,7 +118,7 @@ class Hampter_Overrides extends Module
 
             PrestaShopLogger::addLog(
                 '[hampter_overrides] uninstall success',
-                PrestaShopLogger::LOG_SEVERITY_LEVEL_INFO,
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_INFORMATIVE,
                 null,
                 'Module',
                 null,
@@ -327,8 +327,8 @@ class Hampter_Overrides extends Module
      */
     protected function uninstallModuleOverrides()
     {
-        $sourceDir = $this->getLocalPath() . 'override/modules';
-        $targetDir = _PS_OVERRIDE_DIR_ . 'modules';
+        $sourceDir = $this->getLocalPath() . 'override';
+        $targetDir = _PS_OVERRIDE_DIR_;
 
         if (!is_dir($sourceDir) || !is_dir($targetDir)) {
             return true;
@@ -345,32 +345,14 @@ class Hampter_Overrides extends Module
             $targetPath = $targetDir . DIRECTORY_SEPARATOR . $relativePath;
 
             if ($file->isDir()) {
-                if (is_dir($targetPath) && !rmdir($targetPath)) {
-                    $error = error_get_last();
-                    $message = sprintf('[hampter_overrides] unable to remove directory %s', $targetPath);
-                    if (!empty($error['message'])) {
-                        $message .= ' (' . $error['message'] . ')';
-                    }
-                    $this->_errors[] = $message;
-                    PrestaShopLogger::addLog(
-                        $message,
-                        PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
-                        null,
-                        'Module',
-                        null,
-                        true
-                    );
+                if (is_dir($targetPath) && !$this->removeOverrideDirectory($targetPath)) {
                     $success = false;
                 }
                 continue;
             }
 
             if (is_file($targetPath) && !unlink($targetPath)) {
-                $error = error_get_last();
                 $message = sprintf('[hampter_overrides] unable to remove file %s', $targetPath);
-                if (!empty($error['message'])) {
-                    $message .= ' (' . $error['message'] . ')';
-                }
                 $this->_errors[] = $message;
                 PrestaShopLogger::addLog(
                     $message,
@@ -385,5 +367,114 @@ class Hampter_Overrides extends Module
         }
 
         return $success;
+    }
+
+    /**
+     * Remove an override directory. If it is not empty, try to clean up
+     * leftover PrestaShop index.php protection files before giving up.
+     */
+    protected function removeOverrideDirectory($dir)
+    {
+        if (!is_dir($dir)) {
+            return true;
+        }
+
+        // Try to remove the directory if it is already empty.
+        if (@rmdir($dir)) {
+            return true;
+        }
+
+        // Directory is not empty. Remove any stale index.php files PrestaShop
+        // may have created inside module override directories, then retry.
+        $entries = @scandir($dir);
+        if ($entries === false) {
+            $message = sprintf('[hampter_overrides] unable to scan directory %s', $dir);
+            $this->_errors[] = $message;
+            PrestaShopLogger::addLog(
+                $message,
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
+                null,
+                'Module',
+                null,
+                true
+            );
+            return false;
+        }
+
+        $hasRealFiles = false;
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $path = $dir . DIRECTORY_SEPARATOR . $entry;
+
+            if (is_dir($path)) {
+                // Nested directory we did not install (e.g. another module).
+                // Leave it alone and consider the parent non-empty.
+                $hasRealFiles = true;
+                continue;
+            }
+
+            if ($entry === 'index.php' && $this->isPrestashopIndexFile($path)) {
+                @unlink($path);
+                continue;
+            }
+
+            // Any other file means the directory is still legitimately used.
+            $hasRealFiles = true;
+        }
+
+        if ($hasRealFiles) {
+            $message = sprintf('[hampter_overrides] directory %s is not empty, leaving it in place', $dir);
+            PrestaShopLogger::addLog(
+                $message,
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_WARNING,
+                null,
+                'Module',
+                null,
+                true
+            );
+            return true;
+        }
+
+        if (!@rmdir($dir)) {
+            $message = sprintf('[hampter_overrides] unable to remove directory %s after cleanup', $dir);
+            $this->_errors[] = $message;
+            PrestaShopLogger::addLog(
+                $message,
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
+                null,
+                'Module',
+                null,
+                true
+            );
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check whether a file is one of PrestaShop's automatic index.php
+     * protection files (no useful content, just "Silence is golden").
+     */
+    protected function isPrestashopIndexFile($path)
+    {
+        if (!is_file($path)) {
+            return false;
+        }
+
+        $content = @file_get_contents($path);
+        if ($content === false) {
+            return false;
+        }
+
+        $short = trim($content);
+
+        return $short === ''
+            || stripos($short, 'Silence is golden') !== false
+            || stripos($short, 'header("Expires")') !== false
+            || stripos($short, 'index.php?controller=404') !== false;
     }
 }
