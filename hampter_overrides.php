@@ -32,9 +32,45 @@ class Hampter_Overrides extends Module
     public function install()
     {
         try {
-            return parent::install()
+            $success = parent::install()
                 && $this->registerHook('displayHeader')
                 && $this->installModuleOverrides();
+
+            if (!$success) {
+                $errors = [];
+                if (!empty($this->_errors) && is_array($this->_errors)) {
+                    $errors = $this->_errors;
+                } elseif (method_exists($this, 'getErrors')) {
+                    $errors = $this->getErrors();
+                }
+
+                $message = '[hampter_overrides] install failed';
+                if (!empty($errors)) {
+                    $message .= ': ' . implode(' | ', $errors);
+                }
+
+                PrestaShopLogger::addLog(
+                    $message,
+                    PrestaShopLogger::LOG_SEVERITY_LEVEL_ERROR,
+                    null,
+                    'Module',
+                    null,
+                    true
+                );
+
+                return false;
+            }
+
+            PrestaShopLogger::addLog(
+                '[hampter_overrides] install success',
+                PrestaShopLogger::LOG_SEVERITY_LEVEL_INFO,
+                null,
+                'Module',
+                null,
+                true
+            );
+
+            return true;
         } catch (\Exception $e) {
             PrestaShopLogger::addLog(
                 '[hampter_overrides] install failed: ' . $e->getMessage(),
@@ -45,14 +81,6 @@ class Hampter_Overrides extends Module
                 true
             );
 
-            PrestaShopLogger::addLog(
-                '[hampter_overrides] install OK',
-                PrestaShopLogger::LOG_SEVERITY_LEVEL_INFO,
-                null,
-                'Module',
-                null,
-                true
-            );
             return false;
         }
     }
